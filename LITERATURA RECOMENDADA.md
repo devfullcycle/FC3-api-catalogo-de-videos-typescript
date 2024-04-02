@@ -1,0 +1,8 @@
+- Domain Drive Design - Eric Evans
+- Implementing Domain-Driven Design - Vaughn Vernon
+- Learning Domain-Driven Design - Vlad Khononov
+- Clean Architecture - Robert C. Martin
+- Patterns of Enterprise Application Architecture - Martin Fowler
+- Refactoring - Martin Fowler
+- Design Patterns - Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides
+- Building Event-Driven Microservices - Adam Bellemare
