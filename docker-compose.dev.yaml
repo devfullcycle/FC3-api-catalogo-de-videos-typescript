@@ -1,0 +1,14 @@
+services:
+  
+  app:
+    build: 
+      dockerfile: Dockerfile.dev
+    command: ./.docker/start.dev.sh
+    ports:
+      - 3001:3000
+    volumes:
+      - .:/home/node/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      filebeat_collector: true
