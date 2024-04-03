@@ -37,9 +37,3 @@ export interface ISearchableRepository<
   sortableFields: string[];
   search(props: SearchInput): Promise<SearchOutput>;
 }
-
-export interface IRepositoryScope<RepositoryClass> {
-  scopes: string[];
-  ignoreSoftDeleted(): RepositoryClass;
-  clearScopes(): RepositoryClass;
-}
