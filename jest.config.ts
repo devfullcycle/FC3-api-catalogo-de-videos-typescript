@@ -227,6 +227,10 @@ const config: Config = {
   testEnvironment: 'node',
   coverageProvider: 'v8',
   clearMocks: true,
+  setupFilesAfterEnv: [
+    './core/shared/infra/testing/expect-helpers.ts',
+    './core/shared/infra/testing/global-helpers.ts',
+  ],
 };
 
 export default config;
