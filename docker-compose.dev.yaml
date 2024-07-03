@@ -12,3 +12,17 @@ services:
       - "host.docker.internal:host-gateway"
     labels:
       filebeat_collector: true
+  
+  elasticsearch:
+    image: elasticsearch:7.17.7
+    environment:
+      - discovery.type=single-node
+    ports:
+      - 9200:9200
+  
+  kibana:
+    image: kibana:7.17.1
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
