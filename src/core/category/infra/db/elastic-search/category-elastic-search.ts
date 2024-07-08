@@ -1,5 +1,8 @@
+import { ElasticsearchService } from '@nestjs/elasticsearch';
+import { SortDirection } from '../../../../shared/domain/repository/search-params';
 import { LoadEntityError } from '../../../../shared/domain/validators/validation.error';
 import { Category, CategoryId } from '../../../domain/category.aggregate';
+import { ICategoryRepository } from '../../../domain/category.repository';
 
 export const CATEGORY_DOCUMENT_TYPE_NAME = 'Category';
 
@@ -42,5 +45,55 @@ export class CategoryElasticSearchMapper {
       created_at: entity.created_at,
       type: CATEGORY_DOCUMENT_TYPE_NAME,
     };
+  }
+}
+
+export class CategoryElasticSearchRepository implements ICategoryRepository {
+  sortableFields: string[];
+
+  constructor(
+    private esClient: ElasticsearchService,
+    private index: string,
+  ) {}
+
+  insert(entity: Category): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+  bulkInsert(entities: Category[]): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+  findById(id: CategoryId): Promise<Category | null> {
+    throw new Error('Method not implemented.');
+  }
+  findOneBy(filter: Partial<Category>): Promise<Category | null> {
+    throw new Error('Method not implemented.');
+  }
+  findBy(
+    filter: Partial<Category>,
+    order?: { field: string; direction: SortDirection },
+  ): Promise<Category[]> {
+    throw new Error('Method not implemented.');
+  }
+  findAll(): Promise<Category[]> {
+    throw new Error('Method not implemented.');
+  }
+  findByIds(
+    ids: CategoryId[],
+  ): Promise<{ exists: Category[]; not_exists: CategoryId[] }> {
+    throw new Error('Method not implemented.');
+  }
+  existsById(
+    ids: CategoryId[],
+  ): Promise<{ exists: CategoryId[]; not_exists: CategoryId[] }> {
+    throw new Error('Method not implemented.');
+  }
+  update(entity: Category): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+  delete(id: CategoryId): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+  getEntity(): new (...args: any[]) => Category {
+    throw new Error('Method not implemented.');
   }
 }
