@@ -56,11 +56,24 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
     private index: string,
   ) {}
 
-  insert(entity: Category): Promise<void> {
-    throw new Error('Method not implemented.');
+  async insert(entity: Category): Promise<void> {
+    await this.esClient.index({
+      index: this.index,
+      id: entity.category_id.id,
+      body: CategoryElasticSearchMapper.toDocument(entity),
+      refresh: true,
+    });
   }
-  bulkInsert(entities: Category[]): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async bulkInsert(entities: Category[]): Promise<void> {
+    await this.esClient.bulk({
+      index: this.index,
+      refresh: true,
+      body: entities.flatMap((entity) => [
+        { index: { _id: entity.category_id.id } },
+        CategoryElasticSearchMapper.toDocument(entity),
+      ]),
+    });
   }
   findById(id: CategoryId): Promise<Category | null> {
     throw new Error('Method not implemented.');
