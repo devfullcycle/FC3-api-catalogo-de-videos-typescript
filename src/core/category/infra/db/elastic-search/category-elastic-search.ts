@@ -7,7 +7,6 @@ import {
   GetGetResult,
   QueryDslQueryContainer,
 } from '@elastic/elasticsearch/api/types';
-import { query } from 'express';
 
 export const CATEGORY_DOCUMENT_TYPE_NAME = 'Category';
 
@@ -283,10 +282,41 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
     };
   }
 
-  existsById(
+  async existsById(
     ids: CategoryId[],
   ): Promise<{ exists: CategoryId[]; not_exists: CategoryId[] }> {
-    throw new Error('Method not implemented.');
+    const result = await this.esClient.search({
+      index: this.index,
+      _source: false as any,
+      body: {
+        query: {
+          bool: {
+            must: [
+              {
+                ids: {
+                  values: ids.map((id) => id.id),
+                },
+              },
+              {
+                match: {
+                  type: CATEGORY_DOCUMENT_TYPE_NAME,
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const docs = result.body.hits.hits as GetGetResult<CategoryDocument>[];
+    const existsCategoryIds = docs.map((m) => new CategoryId(m._id as string));
+    const notExistsCategoryIds = ids.filter(
+      (id) => !existsCategoryIds.some((e) => e.equals(id)),
+    );
+    return {
+      exists: existsCategoryIds,
+      not_exists: notExistsCategoryIds,
+    };
   }
   update(entity: Category): Promise<void> {
     throw new Error('Method not implemented.');
@@ -295,6 +325,6 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
     throw new Error('Method not implemented.');
   }
   getEntity(): new (...args: any[]) => Category {
-    throw new Error('Method not implemented.');
+    return Category;
   }
 }

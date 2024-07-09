@@ -188,4 +188,34 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     expect(foundCategories[0].toJSON()).toStrictEqual(categories[0].toJSON());
     expect(foundCategories[1].toJSON()).toStrictEqual(categories[1].toJSON());
   });
+
+  it('should return category id that exists', async () => {
+    const category = Category.fake().aCategory().build();
+    await repository.insert(category);
+
+    const existsResult1 = await repository.existsById([category.category_id]);
+    expect(existsResult1.exists[0]).toBeValueObject(category.category_id);
+    expect(existsResult1.not_exists).toHaveLength(0);
+
+    const categoryId1 = new CategoryId();
+    const categoryId2 = new CategoryId();
+    const notExistsResult = await repository.existsById([
+      categoryId1,
+      categoryId2,
+    ]);
+    expect(notExistsResult.exists).toHaveLength(0);
+    expect(notExistsResult.not_exists).toHaveLength(2);
+    expect(notExistsResult.not_exists[0]).toBeValueObject(categoryId1);
+    expect(notExistsResult.not_exists[1]).toBeValueObject(categoryId2);
+
+    const existsResult2 = await repository.existsById([
+      category.category_id,
+      categoryId1,
+    ]);
+
+    expect(existsResult2.exists).toHaveLength(1);
+    expect(existsResult2.not_exists).toHaveLength(1);
+    expect(existsResult2.exists[0]).toBeValueObject(category.category_id);
+    expect(existsResult2.not_exists[0]).toBeValueObject(categoryId1);
+  });
 });
