@@ -3,6 +3,11 @@ import { SortDirection } from '../../../../shared/domain/repository/search-param
 import { LoadEntityError } from '../../../../shared/domain/validators/validation.error';
 import { Category, CategoryId } from '../../../domain/category.aggregate';
 import { ICategoryRepository } from '../../../domain/category.repository';
+import {
+  GetGetResult,
+  QueryDslQueryContainer,
+} from '@elastic/elasticsearch/api/types';
+import { query } from 'express';
 
 export const CATEGORY_DOCUMENT_TYPE_NAME = 'Category';
 
@@ -49,7 +54,11 @@ export class CategoryElasticSearchMapper {
 }
 
 export class CategoryElasticSearchRepository implements ICategoryRepository {
-  sortableFields: string[];
+  sortableFields: string[] = ['name', 'created_at'];
+  sortableFieldsMap: Record<string, string> = {
+    name: 'category_name',
+    created_at: 'created_at',
+  };
 
   constructor(
     private esClient: ElasticsearchService,
@@ -75,26 +84,205 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
       ]),
     });
   }
-  findById(id: CategoryId): Promise<Category | null> {
-    throw new Error('Method not implemented.');
+
+  async findById(id: CategoryId): Promise<Category | null> {
+    const result = await this.esClient.search({
+      index: this.index,
+      body: {
+        query: {
+          bool: {
+            must: [
+              {
+                match: {
+                  _id: id.id,
+                },
+              },
+              {
+                match: {
+                  type: CATEGORY_DOCUMENT_TYPE_NAME,
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const docs = result.body.hits.hits as GetGetResult<CategoryDocument>[];
+
+    if (docs.length === 0) {
+      return null;
+    }
+
+    const document = docs[0]._source;
+
+    if (!document) {
+      return null;
+    }
+
+    return CategoryElasticSearchMapper.toEntity(id.id, document);
   }
-  findOneBy(filter: Partial<Category>): Promise<Category | null> {
-    throw new Error('Method not implemented.');
+  async findOneBy(filter: {
+    category_id?: CategoryId;
+    is_active?: boolean;
+  }): Promise<Category | null> {
+    const query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            match: {
+              type: CATEGORY_DOCUMENT_TYPE_NAME,
+            },
+          },
+        ],
+      },
+    };
+
+    if (filter.category_id) {
+      //@ts-expect-error - must is an array
+      query.bool.must.push({
+        match: {
+          _id: filter.category_id.id,
+        },
+      });
+    }
+
+    if (filter.is_active !== undefined) {
+      //@ts-expect-error - must is an array
+      query.bool.must.push({
+        match: {
+          is_active: filter.is_active,
+        },
+      });
+    }
+
+    const result = await this.esClient.search({
+      index: this.index,
+      body: {
+        query,
+      },
+    });
+
+    const docs = result.body.hits.hits as GetGetResult<CategoryDocument>[];
+
+    if (docs.length === 0) {
+      return null;
+    }
+
+    const document = docs[0]._source;
+
+    if (!document) {
+      return null;
+    }
+
+    return CategoryElasticSearchMapper.toEntity(
+      docs[0]._id as string,
+      document,
+    );
   }
-  findBy(
-    filter: Partial<Category>,
-    order?: { field: string; direction: SortDirection },
+  async findBy(
+    filter: {
+      category_id?: CategoryId;
+      is_active?: boolean;
+    },
+    order?: { field: 'name' | 'created_at'; direction: SortDirection },
   ): Promise<Category[]> {
-    throw new Error('Method not implemented.');
+    const query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            match: {
+              type: CATEGORY_DOCUMENT_TYPE_NAME,
+            },
+          },
+        ],
+      },
+    };
+
+    if (filter.category_id) {
+      //@ts-expect-error - must is an array
+      query.bool.must.push({
+        match: {
+          _id: filter.category_id.id,
+        },
+      });
+    }
+
+    if (filter.is_active !== undefined) {
+      //@ts-expect-error - must is an array
+      query.bool.must.push({
+        match: {
+          is_active: filter.is_active,
+        },
+      });
+    }
+
+    const result = await this.esClient.search({
+      index: this.index,
+      body: {
+        query,
+        sort:
+          order && this.sortableFieldsMap.hasOwnProperty(order.field)
+            ? { [this.sortableFieldsMap[order.field]]: order.direction }
+            : undefined,
+      },
+    });
+
+    return result.body.hits.hits.map((hit: any) =>
+      CategoryElasticSearchMapper.toEntity(hit._id, hit._source),
+    );
   }
-  findAll(): Promise<Category[]> {
-    throw new Error('Method not implemented.');
+  async findAll(): Promise<Category[]> {
+    const result = await this.esClient.search({
+      index: this.index,
+      body: {
+        query: {
+          match: {
+            type: CATEGORY_DOCUMENT_TYPE_NAME,
+          },
+        },
+      },
+    });
+
+    return result.body.hits.hits.map((hit: any) =>
+      CategoryElasticSearchMapper.toEntity(hit._id, hit._source),
+    );
   }
-  findByIds(
+
+  async findByIds(
     ids: CategoryId[],
   ): Promise<{ exists: Category[]; not_exists: CategoryId[] }> {
-    throw new Error('Method not implemented.');
+    const result = await this.esClient.search({
+      body: {
+        query: {
+          bool: {
+            must: [
+              {
+                ids: {
+                  values: ids.map((id) => id.id),
+                },
+              },
+              {
+                match: {
+                  type: CATEGORY_DOCUMENT_TYPE_NAME,
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const docs = result.body.hits.hits as GetGetResult<CategoryDocument>[];
+
+    return {
+      exists: docs.map((doc) =>
+        CategoryElasticSearchMapper.toEntity(doc._id as string, doc._source!),
+      ),
+      not_exists: ids.filter((id) => !docs.some((doc) => doc._id === id.id)),
+    };
   }
+
   existsById(
     ids: CategoryId[],
   ): Promise<{ exists: CategoryId[]; not_exists: CategoryId[] }> {
