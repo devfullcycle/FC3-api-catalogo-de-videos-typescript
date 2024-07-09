@@ -4,6 +4,7 @@ import {
   CategoryElasticSearchRepository,
 } from '../category-elastic-search';
 import { Category, CategoryId } from '../../../../domain/category.aggregate';
+import { esMapping } from '../../../../../shared/infra/db/elastic-search/es-mapping';
 
 describe('CategoryElasticSearchRepository Integration Tests', () => {
   const esClient: ElasticsearchService = new ElasticsearchService({
@@ -19,6 +20,11 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     } catch (e) {}
     const result = await esClient.indices.create({
       index: 'categories',
+    });
+    //apply mapping
+    await esClient.indices.putMapping({
+      index: 'categories',
+      body: esMapping,
     });
     console.log(result);
     repository = new CategoryElasticSearchRepository(esClient, 'categories');
