@@ -1,4 +1,6 @@
 {
+    "peacock.remoteColor": "#e0234e",
+    "jest.runMode": "on-demand",
     "workbench.colorCustomizations": {
         "activityBar.activeBackground": "#b61a3d",
         "activityBar.background": "#b61a3d",
@@ -18,7 +20,5 @@
         "titleBar.activeForeground": "#e7e7e7",
         "titleBar.inactiveBackground": "#b61a3d99",
         "titleBar.inactiveForeground": "#e7e7e799"
-    },
-    "peacock.remoteColor": "#e0234e",
-    "jest.runMode": "on-demand"
+    }
 }
