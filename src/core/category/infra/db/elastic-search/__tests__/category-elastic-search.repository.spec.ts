@@ -5,6 +5,7 @@ import {
 } from '../category-elastic-search';
 import { Category, CategoryId } from '../../../../domain/category.aggregate';
 import { esMapping } from '../../../../../shared/infra/db/elastic-search/es-mapping';
+import { NotFoundError } from '../../../../../shared/domain/errors/not-found.error';
 
 describe('CategoryElasticSearchRepository Integration Tests', () => {
   const esClient: ElasticsearchService = new ElasticsearchService({
@@ -18,7 +19,7 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
         index: 'categories',
       });
     } catch (e) {}
-    const result = await esClient.indices.create({
+    await esClient.indices.create({
       index: 'categories',
     });
     //apply mapping
@@ -217,5 +218,44 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     expect(existsResult2.not_exists).toHaveLength(1);
     expect(existsResult2.exists[0]).toBeValueObject(category.category_id);
     expect(existsResult2.not_exists[0]).toBeValueObject(categoryId1);
+  });
+
+  it('should throw error on update when a entity not found', async () => {
+    const entity = Category.fake().aCategory().build();
+    await expect(repository.update(entity)).rejects.toThrow(
+      new NotFoundError(entity.category_id.id, Category),
+    );
+  });
+
+  it('should update a entity', async () => {
+    const entity = Category.fake().aCategory().build();
+    await repository.insert(entity);
+
+    entity.changeName('Movie updated');
+    await repository.update(entity);
+
+    const entityFound = await repository.findById(entity.category_id);
+    expect(entity.toJSON()).toStrictEqual(entityFound!.toJSON());
+  });
+
+  it('should throw error on delete when a entity not found', async () => {
+    const categoryId = new CategoryId();
+    await expect(repository.delete(categoryId)).rejects.toThrow(
+      new NotFoundError(categoryId.id, Category),
+    );
+  });
+
+  it('should delete a entity', async () => {
+    const entity = new Category({
+      category_id: new CategoryId(),
+      name: 'Movie',
+      description: 'some description',
+      is_active: false,
+      created_at: new Date(),
+    });
+    await repository.insert(entity);
+
+    await repository.delete(entity.category_id);
+    await expect(repository.findById(entity.category_id)).resolves.toBeNull();
   });
 });

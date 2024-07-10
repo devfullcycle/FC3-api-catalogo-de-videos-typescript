@@ -7,6 +7,7 @@ import {
   GetGetResult,
   QueryDslQueryContainer,
 } from '@elastic/elasticsearch/api/types';
+import { NotFoundError } from '../../../../shared/domain/errors/not-found.error';
 
 export const CATEGORY_DOCUMENT_TYPE_NAME = 'Category';
 
@@ -318,11 +319,49 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
       not_exists: notExistsCategoryIds,
     };
   }
-  update(entity: Category): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async update(entity: Category): Promise<void> {
+    const result = await this.esClient.updateByQuery({
+      index: this.index,
+      body: {
+        query: {
+          match: {
+            _id: entity.category_id.id,
+          },
+        },
+        script: {
+          source: `
+            ctx._source.category_name = params.category_name;
+            ctx._source.category_description = params.category_description;
+            ctx._source.is_active = params.is_active;
+            ctx._source.created_at = params.created_at;
+          `,
+          params: CategoryElasticSearchMapper.toDocument(entity),
+        },
+      },
+      refresh: true,
+    });
+
+    if (result.body.updated == 0) {
+      throw new NotFoundError(entity.category_id.id, Category);
+    }
   }
-  delete(id: CategoryId): Promise<void> {
-    throw new Error('Method not implemented.');
+  async delete(id: CategoryId): Promise<void> {
+    const result = await this.esClient.deleteByQuery({
+      index: this.index,
+      body: {
+        query: {
+          match: {
+            _id: id.id,
+          },
+        },
+      },
+      refresh: true,
+    });
+
+    if (result.body.deleted == 0) {
+      throw new NotFoundError(id.id, Category);
+    }
   }
   getEntity(): new (...args: any[]) => Category {
     return Category;
