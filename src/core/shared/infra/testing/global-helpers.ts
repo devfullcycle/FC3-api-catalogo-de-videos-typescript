@@ -10,15 +10,33 @@ global.fail = (message) => {
   throw new Error(message);
 };
 
+export async function tryStartContainer<T>(fn: () => Promise<T>): Promise<T> {
+  do {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!e.message.includes('port is already allocated')) {
+        throw e;
+      }
+    }
+  } while (true);
+}
+
 export function setupElasticsearch() {
   let _esClient: ElasticsearchService;
   let _startedContainer: StartedElasticsearchContainer;
   let _indexName: string;
 
   beforeAll(async () => {
-    const esContainer = new ElasticsearchContainer('elasticsearch:7.17.7');
-
-    _startedContainer = await esContainer.start();
+    _startedContainer = await tryStartContainer(async () => {
+      return new ElasticsearchContainer('elasticsearch:7.17.7')
+        .withExposedPorts({
+          container: 9200,
+          host: 9300,
+        })
+        .withReuse()
+        .start();
+    });
   }, 120000);
 
   beforeEach(async () => {
@@ -38,10 +56,6 @@ export function setupElasticsearch() {
     await _esClient.indices.delete({
       index: _indexName,
     });
-  });
-
-  afterAll(async () => {
-    await _startedContainer.stop();
   });
 
   return {
