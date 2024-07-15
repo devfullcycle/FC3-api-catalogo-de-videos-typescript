@@ -1,33 +1,21 @@
 import { ElasticsearchService } from '@nestjs/elasticsearch';
-import {
-  CategoryElasticSearchMapper,
-  CategoryElasticSearchRepository,
-} from '../category-elastic-search';
+import { CategoryElasticSearchRepository } from '../category-elastic-search';
 import { Category, CategoryId } from '../../../../domain/category.aggregate';
-import { esMapping } from '../../../../../shared/infra/db/elastic-search/es-mapping';
 import { NotFoundError } from '../../../../../shared/domain/errors/not-found.error';
+import { setupElasticsearch } from '../../../../../shared/infra/testing/global-helpers';
 
 describe('CategoryElasticSearchRepository Integration Tests', () => {
-  const esClient: ElasticsearchService = new ElasticsearchService({
-    node: 'http://elasticsearch:9200',
-  });
   let repository: CategoryElasticSearchRepository;
+  let esClient: ElasticsearchService;
 
-  beforeEach(async () => {
-    try {
-      await esClient.indices.delete({
-        index: 'categories',
-      });
-    } catch (e) {}
-    await esClient.indices.create({
-      index: 'categories',
-    });
-    //apply mapping
-    await esClient.indices.putMapping({
-      index: 'categories',
-      body: esMapping,
-    });
-    repository = new CategoryElasticSearchRepository(esClient, 'categories');
+  const esHelper = setupElasticsearch();
+
+  beforeEach(() => {
+    esClient = esHelper.esClient;
+    repository = new CategoryElasticSearchRepository(
+      esClient,
+      esHelper.indexName,
+    );
   });
 
   test('should inserts a new entity', async () => {
@@ -39,32 +27,16 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
       created_at: new Date(),
     });
     await repository.insert(category);
-    //const entity = await repository.findById(category.category_id);
-    const document = await esClient.get({
-      index: 'categories',
-      id: category.category_id.id,
-    });
-    const entity = CategoryElasticSearchMapper.toEntity(
-      category.category_id.id,
-      document.body._source,
-    );
+    const entity = await repository.findById(category.category_id);
     expect(entity!.toJSON()).toStrictEqual(category.toJSON());
   });
 
   test('should insert many entities', async () => {
     const categories = Category.fake().theCategories(2).build();
     await repository.bulkInsert(categories);
-    const result = await Promise.all(
-      categories.map((c) =>
-        esClient.get({ index: 'categories', id: c.category_id.id }),
-      ),
+    const { exists: foundCategories } = await repository.findByIds(
+      categories.map((g) => g.category_id),
     );
-    const foundCategories = result.map((r) =>
-      CategoryElasticSearchMapper.toEntity(r.body._id, r.body._source),
-    );
-    // const { exists: foundCategories } = await repository.findByIds(
-    //   categories.map((g) => g.category_id),
-    // );
     expect(foundCategories.length).toBe(2);
     expect(foundCategories[0].toJSON()).toStrictEqual(categories[0].toJSON());
     expect(foundCategories[1].toJSON()).toStrictEqual(categories[1].toJSON());
