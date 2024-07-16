@@ -5,6 +5,7 @@ import {
 } from '@testcontainers/elasticsearch';
 import crypto from 'crypto';
 import { esMapping } from '../db/elastic-search/es-mapping';
+import debug from 'debug';
 
 global.fail = (message) => {
   throw new Error(message);
@@ -22,7 +23,15 @@ export async function tryStartContainer<T>(fn: () => Promise<T>): Promise<T> {
   } while (true);
 }
 
-export function setupElasticsearch() {
+const esDebug = debug('eshelper');
+
+type SetupElasticSearchHelper = {
+  deleteIndex: boolean;
+};
+
+export function setupElasticsearch(
+  options: SetupElasticSearchHelper = { deleteIndex: true },
+) {
   let _esClient: ElasticsearchService;
   let _startedContainer: StartedElasticsearchContainer;
   let _indexName: string;
@@ -30,17 +39,21 @@ export function setupElasticsearch() {
   beforeAll(async () => {
     _startedContainer = await tryStartContainer(async () => {
       return new ElasticsearchContainer('elasticsearch:7.17.7')
+        .withReuse()
+        .withTmpFs({
+          '/usr/share/elasticsearch/data': 'rw',
+        })
         .withExposedPorts({
           container: 9200,
           host: 9300,
         })
-        .withReuse()
         .start();
     });
   }, 120000);
 
   beforeEach(async () => {
     _indexName = 'test_es_' + crypto.randomInt(0, 1000000);
+    esDebug('Creating index %s', _indexName);
     _esClient = new ElasticsearchService({
       node: _startedContainer.getHttpUrl(),
     });
@@ -53,9 +66,10 @@ export function setupElasticsearch() {
   });
 
   afterEach(async () => {
-    await _esClient.indices.delete({
-      index: _indexName,
-    });
+    if (!options.deleteIndex) {
+      return;
+    }
+    await _esClient?.indices?.delete({ index: _indexName });
   });
 
   return {
