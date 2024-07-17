@@ -6,6 +6,7 @@ export type CategoryOutput = {
   description: string | null;
   is_active: boolean;
   created_at: Date;
+  deleted_at: Date | null;
 };
 
 export class CategoryOutputMapper {

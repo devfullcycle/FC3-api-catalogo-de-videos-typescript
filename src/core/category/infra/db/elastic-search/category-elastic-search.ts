@@ -16,6 +16,7 @@ export type CategoryDocument = {
   category_description: string | null;
   is_active: boolean;
   created_at: Date | string;
+  deleted_at: Date | string | null;
   type: typeof CATEGORY_DOCUMENT_TYPE_NAME;
 };
 
@@ -33,6 +34,12 @@ export class CategoryElasticSearchMapper {
       created_at: !(document.created_at instanceof Date)
         ? new Date(document.created_at)
         : document.created_at,
+      deleted_at:
+        document.deleted_at === null
+          ? null
+          : !(document.deleted_at instanceof Date)
+            ? new Date(document.deleted_at!)
+            : document.deleted_at,
     });
 
     category.validate();
@@ -48,6 +55,7 @@ export class CategoryElasticSearchMapper {
       category_description: entity.description,
       is_active: entity.is_active,
       created_at: entity.created_at,
+      deleted_at: entity.deleted_at,
       type: CATEGORY_DOCUMENT_TYPE_NAME,
     };
   }
@@ -335,6 +343,7 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
             ctx._source.category_description = params.category_description;
             ctx._source.is_active = params.is_active;
             ctx._source.created_at = params.created_at;
+            ctx._source.deleted_at = params.deleted_at;
           `,
           params: CategoryElasticSearchMapper.toDocument(entity),
         },
@@ -346,6 +355,7 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
       throw new NotFoundError(entity.category_id.id, Category);
     }
   }
+
   async delete(id: CategoryId): Promise<void> {
     const result = await this.esClient.deleteByQuery({
       index: this.index,
@@ -363,6 +373,7 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
       throw new NotFoundError(id.id, Category);
     }
   }
+
   getEntity(): new (...args: any[]) => Category {
     return Category;
   }

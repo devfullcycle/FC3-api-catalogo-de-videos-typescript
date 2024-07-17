@@ -19,6 +19,18 @@ describe('CategoryOutputMapper Unit Tests', () => {
       description: 'some description',
       is_active: true,
       created_at: entity.created_at,
+      deleted_at: null,
+    });
+
+    entity.markAsDeleted();
+    const outputDeleted = CategoryOutputMapper.toOutput(entity);
+    expect(outputDeleted).toStrictEqual({
+      id: entity.category_id.id,
+      name: 'Movie',
+      description: 'some description',
+      is_active: true,
+      created_at: entity.created_at,
+      deleted_at: entity.deleted_at,
     });
   });
 });
