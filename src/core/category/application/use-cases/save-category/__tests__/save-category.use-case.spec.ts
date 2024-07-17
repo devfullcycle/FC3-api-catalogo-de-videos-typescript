@@ -1,5 +1,5 @@
-import { Category, CategoryId } from '../../../../../domain/category.aggregate';
-import { CategoryInMemoryRepository } from '../../../../../infra/db/in-memory/category-in-memory.repository';
+import { Category, CategoryId } from '../../../../domain/category.aggregate';
+import { CategoryInMemoryRepository } from '../../../../infra/db/in-memory/category-in-memory.repository';
 import { SaveCategoryInput } from '../save-category.input';
 import { SaveCategoryUseCase } from '../save-category.use-case';
 
@@ -27,7 +27,7 @@ describe('SaveCategoryUseCase Unit Tests', () => {
   });
 
   it('should call updateCategory method when category exists in database', async () => {
-    useCase['oupdateCategry'] = jest.fn();
+    useCase['updateCategory'] = jest.fn();
     const category = Category.fake().aCategory().build();
     repository.insert(category);
     const input = new SaveCategoryInput({

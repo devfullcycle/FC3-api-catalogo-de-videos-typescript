@@ -1,4 +1,4 @@
-import { Category } from '../../../domain/category.aggregate';
+import { Category } from '../../domain/category.aggregate';
 
 export type CategoryOutput = {
   id: string;

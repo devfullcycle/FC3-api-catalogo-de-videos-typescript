@@ -1,4 +1,4 @@
-import { Category, CategoryId } from '../../../domain/category.aggregate';
+import { Category, CategoryId } from '../../domain/category.aggregate';
 import { CategoryOutputMapper } from './category-output';
 
 describe('CategoryOutputMapper Unit Tests', () => {

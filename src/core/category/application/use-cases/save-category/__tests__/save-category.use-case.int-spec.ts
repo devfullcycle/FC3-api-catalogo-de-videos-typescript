@@ -1,8 +1,8 @@
 import { SaveCategoryUseCase } from '../save-category.use-case';
 import { SaveCategoryInput } from '../save-category.input';
-import { CategoryElasticSearchRepository } from '../../../../../infra/db/elastic-search/category-elastic-search';
-import { setupElasticsearch } from '../../../../../../shared/infra/testing/global-helpers';
-import { Category, CategoryId } from '../../../../../domain/category.aggregate';
+import { CategoryElasticSearchRepository } from '../../../../infra/db/elastic-search/category-elastic-search';
+import { setupElasticsearch } from '../../../../../shared/infra/testing/global-helpers';
+import { Category, CategoryId } from '../../../../domain/category.aggregate';
 
 describe('SaveCategoryUseCase Integration Tests', () => {
   let useCase: SaveCategoryUseCase;

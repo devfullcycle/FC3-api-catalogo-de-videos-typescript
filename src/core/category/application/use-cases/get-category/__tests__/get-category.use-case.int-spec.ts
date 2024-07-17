@@ -1,7 +1,7 @@
-import { NotFoundError } from '../../../../../../shared/domain/errors/not-found.error';
-import { setupElasticsearch } from '../../../../../../shared/infra/testing/global-helpers';
-import { Category, CategoryId } from '../../../../../domain/category.aggregate';
-import { CategoryElasticSearchRepository } from '../../../../../infra/db/elastic-search/category-elastic-search';
+import { NotFoundError } from '../../../../../shared/domain/errors/not-found.error';
+import { setupElasticsearch } from '../../../../../shared/infra/testing/global-helpers';
+import { Category, CategoryId } from '../../../../domain/category.aggregate';
+import { CategoryElasticSearchRepository } from '../../../../infra/db/elastic-search/category-elastic-search';
 import { GetCategoryUseCase } from '../get-category.use-case';
 
 describe('GetCategoryUseCase Integration Tests', () => {

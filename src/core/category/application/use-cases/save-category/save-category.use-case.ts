@@ -1,7 +1,7 @@
-import { IUseCase } from '../../../../../shared/application/use-case-interface';
-import { EntityValidationError } from '../../../../../shared/domain/validators/validation.error';
-import { Category, CategoryId } from '../../../../domain/category.aggregate';
-import { ICategoryRepository } from '../../../../domain/category.repository';
+import { IUseCase } from '../../../../shared/application/use-case-interface';
+import { EntityValidationError } from '../../../../shared/domain/validators/validation.error';
+import { Category, CategoryId } from '../../../domain/category.aggregate';
+import { ICategoryRepository } from '../../../domain/category.repository';
 import { SaveCategoryInput } from './save-category.input';
 
 export class SaveCategoryUseCase
