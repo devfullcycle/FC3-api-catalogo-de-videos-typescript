@@ -8,7 +8,16 @@ services:
       - 3001:3000
     volumes:
       - .:/home/node/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ~/.docker/config.json:/home/node/.docker/config.json:ro
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     labels:
       filebeat_collector: true
+    stop_signal: SIGKILL
+    stdin_open: true
+    tty: true
+    privileged: true
+
+#test containers
+#container runtime - docker | podman | rancher 
