@@ -40,5 +40,19 @@ describe('ListAllCategoriesUseCase Integration Tests', () => {
       created_at: category2.created_at,
       deleted_at: null,
     });
+
+    category1.markAsDeleted();
+    await repository.update(category1);
+
+    const output2 = await useCase.execute();
+    expect(output2).toHaveLength(1);
+    expect(output2).toContainEqual({
+      id: category2.category_id.id,
+      name: category2.name,
+      description: category2.description,
+      is_active: category2.is_active,
+      created_at: category2.created_at,
+      deleted_at: null,
+    });
   });
 });

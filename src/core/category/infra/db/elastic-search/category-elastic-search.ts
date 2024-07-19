@@ -8,6 +8,8 @@ import {
   QueryDslQueryContainer,
 } from '@elastic/elasticsearch/api/types';
 import { NotFoundError } from '../../../../shared/domain/errors/not-found.error';
+import { ICriteria } from '../../../../shared/domain/repository/criteria.interface';
+import { SoftDeleteElasticSearchCriteria } from '../../../../shared/infra/db/elastic-search/soft-delete-elastic-search.criteria';
 
 export const CATEGORY_DOCUMENT_TYPE_NAME = 'Category';
 
@@ -67,6 +69,7 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
     name: 'category_name',
     created_at: 'created_at',
   };
+  scopes: Map<string, ICriteria> = new Map();
 
   constructor(
     private esClient: ElasticsearchService,
@@ -94,25 +97,29 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
   }
 
   async findById(id: CategoryId): Promise<Category | null> {
+    let query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            match: {
+              _id: id.id,
+            },
+          },
+          {
+            match: {
+              type: CATEGORY_DOCUMENT_TYPE_NAME,
+            },
+          },
+        ],
+      },
+    };
+
+    query = this.applyScopes(query);
+
     const result = await this.esClient.search({
       index: this.index,
       body: {
-        query: {
-          bool: {
-            must: [
-              {
-                match: {
-                  _id: id.id,
-                },
-              },
-              {
-                match: {
-                  type: CATEGORY_DOCUMENT_TYPE_NAME,
-                },
-              },
-            ],
-          },
-        },
+        query,
       },
     });
 
@@ -130,11 +137,12 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
 
     return CategoryElasticSearchMapper.toEntity(id.id, document);
   }
+
   async findOneBy(filter: {
     category_id?: CategoryId;
     is_active?: boolean;
   }): Promise<Category | null> {
-    const query: QueryDslQueryContainer = {
+    let query: QueryDslQueryContainer = {
       bool: {
         must: [
           {
@@ -163,6 +171,8 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
         },
       });
     }
+
+    query = this.applyScopes(query);
 
     const result = await this.esClient.search({
       index: this.index,
@@ -195,7 +205,7 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
     },
     order?: { field: 'name' | 'created_at'; direction: SortDirection },
   ): Promise<Category[]> {
-    const query: QueryDslQueryContainer = {
+    let query: QueryDslQueryContainer = {
       bool: {
         must: [
           {
@@ -225,6 +235,8 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
       });
     }
 
+    query = this.applyScopes(query);
+
     const result = await this.esClient.search({
       index: this.index,
       body: {
@@ -241,14 +253,23 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
     );
   }
   async findAll(): Promise<Category[]> {
+    let query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            match: {
+              type: CATEGORY_DOCUMENT_TYPE_NAME,
+            },
+          },
+        ],
+      },
+    };
+    query = this.applyScopes(query);
+
     const result = await this.esClient.search({
       index: this.index,
       body: {
-        query: {
-          match: {
-            type: CATEGORY_DOCUMENT_TYPE_NAME,
-          },
-        },
+        query,
       },
     });
 
@@ -260,24 +281,27 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
   async findByIds(
     ids: CategoryId[],
   ): Promise<{ exists: Category[]; not_exists: CategoryId[] }> {
+    let query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            ids: {
+              values: ids.map((id) => id.id),
+            },
+          },
+          {
+            match: {
+              type: CATEGORY_DOCUMENT_TYPE_NAME,
+            },
+          },
+        ],
+      },
+    };
+    query = this.applyScopes(query);
+
     const result = await this.esClient.search({
       body: {
-        query: {
-          bool: {
-            must: [
-              {
-                ids: {
-                  values: ids.map((id) => id.id),
-                },
-              },
-              {
-                match: {
-                  type: CATEGORY_DOCUMENT_TYPE_NAME,
-                },
-              },
-            ],
-          },
-        },
+        query,
       },
     });
 
@@ -294,26 +318,29 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
   async existsById(
     ids: CategoryId[],
   ): Promise<{ exists: CategoryId[]; not_exists: CategoryId[] }> {
+    let query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            ids: {
+              values: ids.map((id) => id.id),
+            },
+          },
+          {
+            match: {
+              type: CATEGORY_DOCUMENT_TYPE_NAME,
+            },
+          },
+        ],
+      },
+    };
+    query = this.applyScopes(query);
+
     const result = await this.esClient.search({
       index: this.index,
       _source: false as any,
       body: {
-        query: {
-          bool: {
-            must: [
-              {
-                ids: {
-                  values: ids.map((id) => id.id),
-                },
-              },
-              {
-                match: {
-                  type: CATEGORY_DOCUMENT_TYPE_NAME,
-                },
-              },
-            ],
-          },
-        },
+        query,
       },
     });
 
@@ -329,14 +356,22 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
   }
 
   async update(entity: Category): Promise<void> {
+    let query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            match: {
+              _id: entity.category_id.id,
+            },
+          },
+        ],
+      },
+    };
+    query = this.applyScopes(query);
     const result = await this.esClient.updateByQuery({
       index: this.index,
       body: {
-        query: {
-          match: {
-            _id: entity.category_id.id,
-          },
-        },
+        query,
         script: {
           source: `
             ctx._source.category_name = params.category_name;
@@ -357,14 +392,22 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
   }
 
   async delete(id: CategoryId): Promise<void> {
+    let query: QueryDslQueryContainer = {
+      bool: {
+        must: [
+          {
+            match: {
+              _id: id.id,
+            },
+          },
+        ],
+      },
+    };
+    query = this.applyScopes(query);
     const result = await this.esClient.deleteByQuery({
       index: this.index,
       body: {
-        query: {
-          match: {
-            _id: id.id,
-          },
-        },
+        query,
       },
       refresh: true,
     });
@@ -376,5 +419,25 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
 
   getEntity(): new (...args: any[]) => Category {
     return Category;
+  }
+
+  ignoreSoftDeleted(): this {
+    this.scopes.set(
+      SoftDeleteElasticSearchCriteria.name,
+      new SoftDeleteElasticSearchCriteria(),
+    );
+    return this;
+  }
+
+  clearScopes(): this {
+    this.scopes.clear();
+    return this;
+  }
+
+  private applyScopes(query: QueryDslQueryContainer): QueryDslQueryContainer {
+    return Array.from(this.scopes.values()).reduce(
+      (acc, criteria) => criteria.applyCriteria(acc),
+      query,
+    );
   }
 }
