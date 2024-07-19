@@ -1,5 +1,6 @@
 import { AggregateRoot } from '../aggregate-root';
 import { ValueObject } from '../value-object';
+import { ICriteria } from './criteria.interface';
 import { SearchParams, SortDirection } from './search-params';
 import { SearchResult } from './search-result';
 
@@ -36,4 +37,5 @@ export interface ISearchableRepository<
 > extends IRepository<A, AggregateId> {
   sortableFields: string[];
   search(props: SearchInput): Promise<SearchOutput>;
+  searchByCriteria(criterias: ICriteria[]): Promise<SearchOutput>;
 }
