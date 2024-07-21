@@ -14,7 +14,7 @@ export class GetCategoryUseCase
 
   async execute(input: GetCategoryInput): Promise<GetCategoryOutput> {
     const categoryId = new CategoryId(input.id);
-    const category = await this.categoryRepo.findOneBy({
+    const category = await this.categoryRepo.ignoreSoftDeleted().findOneBy({
       category_id: categoryId,
       is_active: true,
     });

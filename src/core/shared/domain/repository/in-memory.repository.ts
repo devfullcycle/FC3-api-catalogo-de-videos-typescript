@@ -2,9 +2,11 @@ import { AggregateRoot } from '../aggregate-root';
 import { InvalidArgumentError } from '../errors/invalid-argument.error';
 import { NotFoundError } from '../errors/not-found.error';
 import { ValueObject } from '../value-object';
+import { ICriteria } from './criteria.interface';
 import { IRepository, ISearchableRepository } from './repository.interface';
 import { SearchParams, SortDirection } from './search-params';
 import { SearchResult } from './search-result';
+import { SoftDeleteInMemoryCriteria } from './soft-delete-in-memory.criteria';
 
 export abstract class InMemoryRepository<
   E extends AggregateRoot,
@@ -13,7 +15,7 @@ export abstract class InMemoryRepository<
 {
   items: E[] = [];
   sortableFields: string[];
-  scopes: string[] = [];
+  scopes: Map<string, ICriteria> = new Map();
 
   constructor() {}
 
@@ -31,7 +33,7 @@ export abstract class InMemoryRepository<
   }
 
   async findOneBy(filter: Partial<E>): Promise<E | null> {
-    const entity = this.items.find((item) => {
+    const entity = this.applyScopes(this.items).find((item) => {
       return Object.entries(filter).every(([key, value]) => {
         return value instanceof ValueObject
           ? item[key].equals(value)
@@ -48,7 +50,7 @@ export abstract class InMemoryRepository<
       direction: SortDirection;
     },
   ): Promise<E[]> {
-    let items = this.items.filter((entity) => {
+    let items = this.applyScopes(this.items).filter((entity) => {
       return Object.entries(filter).every(([key, value]) => {
         return value instanceof ValueObject
           ? entity[key].equals(value)
@@ -75,12 +77,12 @@ export abstract class InMemoryRepository<
   }
 
   async findAll(): Promise<E[]> {
-    return this.items.map(this.clone);
+    return this.applyScopes(this.items).map(this.clone);
   }
 
   async findByIds(ids: ID[]): Promise<{ exists: E[]; not_exists: ID[] }> {
     //avoid to return repeated items
-    const foundItems = this.items.filter((entity) => {
+    const foundItems = this.applyScopes(this.items).filter((entity) => {
       return ids.some((id) => entity.entity_id.equals(id));
     });
     const notFoundIds = ids.filter(
@@ -109,7 +111,9 @@ export abstract class InMemoryRepository<
     const existsId = new Set<ID>();
     const notExistsId = new Set<ID>();
     ids.forEach((id) => {
-      const item = this.items.find((entity) => entity.entity_id.equals(id));
+      const item = this.applyScopes(this.items).find((entity) =>
+        entity.entity_id.equals(id),
+      );
       item ? existsId.add(id) : notExistsId.add(id);
     });
     return {
@@ -130,7 +134,9 @@ export abstract class InMemoryRepository<
   }
 
   async delete(id: ID): Promise<void> {
-    const indexFound = this.items.findIndex((i) => i.entity_id.equals(id));
+    const indexFound = this.applyScopes(this.items).findIndex((i: E) =>
+      i.entity_id.equals(id),
+    );
     if (indexFound < 0) {
       throw new NotFoundError(id, this.getEntity());
     }
@@ -139,12 +145,35 @@ export abstract class InMemoryRepository<
   }
 
   protected async _get(id: ID): Promise<E | null> {
-    const item = this.items.find((i) => i.entity_id.equals(id));
+    const item = this.applyScopes(this.items).find((i: E) =>
+      i.entity_id.equals(id),
+    );
     return typeof item === 'undefined' ? null : item;
   }
 
   protected clone(obj: E): E {
     return Object.assign(Object.create(Object.getPrototypeOf(obj)), obj);
+  }
+
+  ignoreSoftDeleted(): this {
+    this.scopes.set(
+      SoftDeleteInMemoryCriteria.name,
+      new SoftDeleteInMemoryCriteria(),
+    );
+    return this;
+  }
+
+  protected applyScopes(context: E[]): any {
+    let items = context;
+    for (const criteria of this.scopes.values()) {
+      items = criteria.applyCriteria(items);
+    }
+    return items;
+  }
+
+  clearScopes(): this {
+    this.scopes.clear();
+    return this;
   }
 
   abstract getEntity(): new (...args: any[]) => E;
@@ -158,8 +187,6 @@ export abstract class InMemorySearchableRepository<
   extends InMemoryRepository<E, AggregateId>
   implements ISearchableRepository<E, AggregateId, Filter>
 {
-  sortableFields: string[] = [];
-
   async search(props: SearchParams<Filter>): Promise<SearchResult<E>> {
     const itemsFiltered = await this.applyFilter(this.items, props.filter);
     const itemsSorted = await this.applySort(
@@ -218,5 +245,10 @@ export abstract class InMemorySearchableRepository<
     const start = (page - 1) * per_page; // 1 * 15 = 15
     const limit = start + per_page; // 15 + 15 = 30
     return items.slice(start, limit);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  searchByCriteria(criterias: ICriteria[]): Promise<SearchResult<E>> {
+    throw new Error('Method not implemented.');
   }
 }

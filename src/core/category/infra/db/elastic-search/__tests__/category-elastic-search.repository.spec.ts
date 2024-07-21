@@ -1,19 +1,15 @@
-import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { CategoryElasticSearchRepository } from '../category-elastic-search';
 import { Category, CategoryId } from '../../../../domain/category.aggregate';
 import { NotFoundError } from '../../../../../shared/domain/errors/not-found.error';
 import { setupElasticsearch } from '../../../../../shared/infra/testing/global-helpers';
 
 describe('CategoryElasticSearchRepository Integration Tests', () => {
-  let repository: CategoryElasticSearchRepository;
-  let esClient: ElasticsearchService;
-
   const esHelper = setupElasticsearch();
+  let repository: CategoryElasticSearchRepository;
 
-  beforeEach(() => {
-    esClient = esHelper.esClient;
+  beforeEach(async () => {
     repository = new CategoryElasticSearchRepository(
-      esClient,
+      esHelper.esClient,
       esHelper.indexName,
     );
   });
@@ -42,7 +38,7 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     expect(foundCategories[1].toJSON()).toStrictEqual(categories[1].toJSON());
   });
 
-  it('should finds a entity by id', async () => {
+  it('should find a entity by id', async () => {
     let entityFound = await repository.findById(new CategoryId());
     expect(entityFound).toBeNull();
 
@@ -56,6 +52,13 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     await repository.insert(entity);
     entityFound = await repository.findById(entity.category_id);
     expect(entity.toJSON()).toStrictEqual(entityFound!.toJSON());
+
+    entity.markAsDeleted();
+
+    await repository.update(entity);
+    await expect(
+      repository.ignoreSoftDeleted().findById(entity.category_id),
+    ).resolves.toBeNull();
   });
 
   it('should find a entity by filter', async () => {
@@ -80,6 +83,15 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
       is_active: false,
     });
     expect(entityFound?.toJSON()).toStrictEqual(entity.toJSON());
+
+    entity.markAsDeleted();
+    await repository.update(entity);
+
+    expect(
+      repository
+        .ignoreSoftDeleted()
+        .findOneBy({ category_id: entity.category_id }),
+    ).resolves.toBeNull();
   });
 
   it('should find entities by filter and order', async () => {
@@ -109,6 +121,19 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     );
 
     expect(entities).toStrictEqual([categories[1], categories[0]]);
+
+    categories[0].markAsDeleted();
+    await repository.update(categories[0]);
+
+    entities = await repository.ignoreSoftDeleted().findBy(
+      { is_active: true },
+      {
+        field: 'name',
+        direction: 'asc',
+      },
+    );
+
+    expect(entities).toStrictEqual([categories[1]]);
   });
 
   it('should find entities by filter', async () => {
@@ -134,6 +159,15 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     });
     expect(entities).toHaveLength(1);
     expect(JSON.stringify(entities)).toBe(JSON.stringify([entity]));
+
+    entity.markAsDeleted();
+
+    await repository.update(entity);
+
+    entities = await repository
+      .ignoreSoftDeleted()
+      .findBy({ category_id: entity.category_id });
+    expect(entities).toHaveLength(0);
   });
 
   it('should return all categories', async () => {
@@ -145,9 +179,15 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
       created_at: new Date(),
     });
     await repository.insert(entity);
-    const entities = await repository.findAll();
+    let entities = await repository.findAll();
     expect(entities).toHaveLength(1);
     expect(JSON.stringify(entities)).toBe(JSON.stringify([entity]));
+
+    entity.markAsDeleted();
+
+    await repository.update(entity);
+    entities = await repository.ignoreSoftDeleted().findAll();
+    expect(entities).toHaveLength(0);
   });
 
   it('should return a categories list by ids', async () => {
@@ -160,12 +200,26 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     expect(foundCategories.length).toBe(2);
     expect(foundCategories[0].toJSON()).toStrictEqual(categories[0].toJSON());
     expect(foundCategories[1].toJSON()).toStrictEqual(categories[1].toJSON());
+
+    categories[0].markAsDeleted();
+    categories[1].markAsDeleted();
+
+    Promise.all([
+      await repository.update(categories[0]),
+      await repository.update(categories[1]),
+    ]);
+
+    const { exists: foundCategories2 } = await repository
+      .ignoreSoftDeleted()
+      .findByIds(categories.map((g) => g.category_id));
+    expect(foundCategories2.length).toBe(0);
   });
 
   it('should return category id that exists', async () => {
     const category = Category.fake().aCategory().build();
     await repository.insert(category);
 
+    await repository.insert(category);
     const existsResult1 = await repository.existsById([category.category_id]);
     expect(existsResult1.exists[0]).toBeValueObject(category.category_id);
     expect(existsResult1.not_exists).toHaveLength(0);
@@ -190,11 +244,27 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     expect(existsResult2.not_exists).toHaveLength(1);
     expect(existsResult2.exists[0]).toBeValueObject(category.category_id);
     expect(existsResult2.not_exists[0]).toBeValueObject(categoryId1);
+
+    category.markAsDeleted();
+
+    await repository.update(category);
+    const existsResult3 = await repository
+      .ignoreSoftDeleted()
+      .existsById([category.category_id]);
+    expect(existsResult3.exists).toHaveLength(0);
+    expect(existsResult3.not_exists).toHaveLength(1);
+    expect(existsResult3.not_exists[0]).toBeValueObject(category.category_id);
   });
 
   it('should throw error on update when a entity not found', async () => {
     const entity = Category.fake().aCategory().build();
     await expect(repository.update(entity)).rejects.toThrow(
+      new NotFoundError(entity.category_id.id, Category),
+    );
+
+    entity.markAsDeleted();
+    await repository.insert(entity);
+    await expect(repository.ignoreSoftDeleted().update(entity)).rejects.toThrow(
       new NotFoundError(entity.category_id.id, Category),
     );
   });
@@ -215,6 +285,14 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     await expect(repository.delete(categoryId)).rejects.toThrow(
       new NotFoundError(categoryId.id, Category),
     );
+
+    const category = Category.fake().aCategory().build();
+    category.markAsDeleted();
+    await repository.insert(category);
+
+    await expect(
+      repository.ignoreSoftDeleted().delete(category.category_id),
+    ).rejects.toThrow(new NotFoundError(category.category_id, Category));
   });
 
   it('should delete a entity', async () => {

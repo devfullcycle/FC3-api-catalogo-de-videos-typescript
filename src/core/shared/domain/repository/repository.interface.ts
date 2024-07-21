@@ -1,10 +1,12 @@
 import { AggregateRoot } from '../aggregate-root';
 import { ValueObject } from '../value-object';
+import { ICriteria } from './criteria.interface';
 import { SearchParams, SortDirection } from './search-params';
 import { SearchResult } from './search-result';
 
 export interface IRepository<E extends AggregateRoot, ID extends ValueObject> {
   sortableFields: string[];
+  scopes: Map<string, ICriteria>;
   insert(entity: E): Promise<void>;
   bulkInsert(entities: E[]): Promise<void>;
   findById(id: ID): Promise<E | null>;
@@ -24,6 +26,8 @@ export interface IRepository<E extends AggregateRoot, ID extends ValueObject> {
   }>;
   update(entity: E): Promise<void>;
   delete(id: ID): Promise<void>;
+  ignoreSoftDeleted(): this;
+  clearScopes(): this;
   getEntity(): new (...args: any[]) => E;
 }
 
@@ -36,4 +40,8 @@ export interface ISearchableRepository<
 > extends IRepository<A, AggregateId> {
   sortableFields: string[];
   search(props: SearchInput): Promise<SearchOutput>;
+  searchByCriteria(
+    criterias: ICriteria[],
+    searchParams: SearchParams,
+  ): Promise<SearchOutput>;
 }
