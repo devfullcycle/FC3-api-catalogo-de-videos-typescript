@@ -1,5 +1,12 @@
 import { Chance } from 'chance';
 import { Category, CategoryId } from './category.aggregate';
+import { NestedCategory } from './nested-category.entity';
+
+export enum CategoryFakeMode {
+  ONLY_AGGREGATE = 'ONLY_AGGREGATE',
+  ONLY_NESTED = 'ONLY_NESTED',
+  BOTH = 'BOTH',
+}
 
 type PropOrFactory<T> = T | ((index: number) => T);
 
@@ -21,10 +28,15 @@ export class CategoryFakeBuilder<TBuild = any> {
 
   private countObjs;
   private chance: Chance.Chance;
+  private mode: CategoryFakeMode;
 
-  private constructor(countObjs: number = 1) {
+  private constructor(
+    countObjs: number = 1,
+    mode = CategoryFakeMode.ONLY_AGGREGATE,
+  ) {
     this.countObjs = countObjs;
     this.chance = Chance();
+    this.mode = mode;
   }
 
   static aCategory() {
@@ -33,6 +45,34 @@ export class CategoryFakeBuilder<TBuild = any> {
 
   static theCategories(countObjs: number) {
     return new CategoryFakeBuilder<Category[]>(countObjs);
+  }
+
+  static aCategoryAndNested() {
+    return new CategoryFakeBuilder<[Category, NestedCategory]>(
+      1,
+      CategoryFakeMode.BOTH,
+    );
+  }
+
+  static theCategoriesAndNested(countObjs: number) {
+    return new CategoryFakeBuilder<[Category, NestedCategory][]>(
+      countObjs,
+      CategoryFakeMode.BOTH,
+    );
+  }
+
+  static aNestedCategory() {
+    return new CategoryFakeBuilder<NestedCategory>(
+      1,
+      CategoryFakeMode.ONLY_NESTED,
+    );
+  }
+
+  static theNestedCategories(countObjs: number) {
+    return new CategoryFakeBuilder<NestedCategory[]>(
+      countObjs,
+      CategoryFakeMode.ONLY_NESTED,
+    );
   }
 
   withCategoryId(valueOrFactory: PropOrFactory<CategoryId>) {
@@ -84,16 +124,49 @@ export class CategoryFakeBuilder<TBuild = any> {
     const categories = new Array(this.countObjs)
       .fill(undefined)
       .map((_, index) => {
-        const category = new Category({
-          category_id: this.callFactory(this._category_id, index),
-          name: this.callFactory(this._name, index),
-          description: this.callFactory(this._description, index),
-          is_active: this.callFactory(this._is_active, index),
-          created_at: this.callFactory(this._created_at, index),
-          deleted_at: this.callFactory(this._deleted_at, index),
-        });
-        category.validate();
-        return category;
+        if (this.mode === CategoryFakeMode.ONLY_NESTED) {
+          const nested = new NestedCategory({
+            category_id: this.callFactory(this._category_id, index),
+            name: this.callFactory(this._name, index),
+            is_active: this.callFactory(this._is_active, index),
+            deleted_at: this.callFactory(this._deleted_at, index),
+          });
+          nested.validate();
+          return nested;
+        }
+
+        if (this.mode === CategoryFakeMode.ONLY_AGGREGATE) {
+          const category = new Category({
+            category_id: this.callFactory(this._category_id, index),
+            name: this.callFactory(this._name, index),
+            description: this.callFactory(this._description, index),
+            is_active: this.callFactory(this._is_active, index),
+            created_at: this.callFactory(this._created_at, index),
+            deleted_at: this.callFactory(this._deleted_at, index),
+          });
+          category.validate();
+          return category;
+        }
+
+        if (this.mode === CategoryFakeMode.BOTH) {
+          const category = new Category({
+            category_id: this.callFactory(this._category_id, index),
+            name: this.callFactory(this._name, index),
+            description: this.callFactory(this._description, index),
+            is_active: this.callFactory(this._is_active, index),
+            created_at: this.callFactory(this._created_at, index),
+            deleted_at: this.callFactory(this._deleted_at, index),
+          });
+          category.validate();
+          const nested = new NestedCategory({
+            category_id: category.category_id,
+            name: category.name,
+            is_active: category.is_active,
+            deleted_at: category.deleted_at,
+          });
+          nested.validate();
+          return [category, nested];
+        }
       });
     return this.countObjs === 1 ? (categories[0] as any) : categories;
   }
