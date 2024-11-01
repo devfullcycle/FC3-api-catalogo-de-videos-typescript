@@ -15,6 +15,19 @@ export const esMapping: MappingTypeMapping = {
     },
     cast_member_name: { type: 'keyword' },
     cast_member_type: { type: 'integer' },
+    genre_name: { type: 'keyword' },
+    categories: {
+      type: 'nested',
+      properties: {
+        category_id: { type: 'keyword' },
+        category_name: { type: 'keyword' },
+        is_active: { type: 'boolean', copy_to: 'categories__is_active' },
+        deleted_at: { type: 'date' },
+        is_deleted: { type: 'boolean', copy_to: 'categories__is_deleted' },
+      },
+    },
+    categories__is_active: { type: 'boolean' },
+    categories__is_deleted: { type: 'boolean' },
     is_active: {
       type: 'boolean',
     },
