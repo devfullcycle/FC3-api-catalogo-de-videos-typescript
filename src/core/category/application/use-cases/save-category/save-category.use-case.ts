@@ -27,10 +27,24 @@ export class SaveCategoryUseCase
       throw new EntityValidationError(entity.notification.toJSON());
     }
     await this.categoryRepo.insert(entity);
-    return { id: entity.category_id.id, created: true }; //CQS 
+    return { id: entity.category_id.id, created: true }; //CQS
   }
 
   private async updateCategory(input: SaveCategoryInput, category: Category) {
+    if (input.is_active === false) {
+      const hasOnlyOneActivateInRelated =
+        await this.categoryRepo.hasOnlyOneActivateInRelated(
+          category.category_id,
+        );
+      if (hasOnlyOneActivateInRelated) {
+        throw new EntityValidationError([
+          {
+            is_active: ['At least one category must be active in related.'],
+          },
+        ]);
+      }
+    }
+
     category.changeName(input.name);
     category.changeDescription(input.description);
 

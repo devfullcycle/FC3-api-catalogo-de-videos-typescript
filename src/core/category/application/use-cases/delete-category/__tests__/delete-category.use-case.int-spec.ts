@@ -25,6 +25,30 @@ describe('DeleteCategoryUseCase Integration Tests', () => {
     );
   });
 
+  it('should throw an error when there is only one category not deleted in related and a only category valid is being deleted', async () => {
+    const category = Category.fake().aCategory().build();
+    await repository.insert(category);
+    await esHelper.esClient.create({
+      index: esHelper.indexName,
+      id: '1',
+      body: {
+        categories: [
+          {
+            category_id: category.category_id.id,
+            category_name: 'test',
+            is_active: true,
+            deleted_at: null,
+            is_deleted: false,
+          },
+        ],
+      },
+      refresh: true,
+    });
+    await expect(() =>
+      useCase.execute({ id: category.category_id.id }),
+    ).rejects.toThrow('At least one category must be present in related.');
+  });
+
   it('should delete a category', async () => {
     const category = Category.fake().aCategory().build();
     await repository.insert(category);
