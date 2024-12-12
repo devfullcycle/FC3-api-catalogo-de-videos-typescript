@@ -545,6 +545,52 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     expect(entity.toJSON()).toStrictEqual(entityFound!.toJSON());
   });
 
+  it('should update nested categories', async () => {
+    const entity = Category.fake().aCategory().build();
+    await repository.insert(entity);
+
+    await esHelper.esClient.create({
+      index: esHelper.indexName,
+      id: '1',
+      body: {
+        categories: [
+          {
+            category_id: entity.category_id.id,
+            category_name: entity.name,
+            is_active: entity.is_active,
+            deleted_at: entity.deleted_at,
+          },
+        ],
+      },
+      refresh: true,
+    });
+    entity.changeName('Movie updated');
+    entity.deactivate();
+    entity.markAsDeleted();
+
+    await repository.update(entity);
+
+    const category = await esHelper.esClient.get<any>({
+      index: esHelper.indexName,
+      id: entity.category_id.id,
+    });
+
+    expect(category.body._source.category_name).toBe('Movie updated');
+    expect(category.body._source.is_active).toBe(false);
+    expect(category.body._source.deleted_at).toBeDefined();
+
+    const fakeDocument = await esHelper.esClient.get<any>({
+      index: esHelper.indexName,
+      id: '1',
+    });
+
+    expect(fakeDocument.body._source.categories[0].category_name).toBe(
+      'Movie updated',
+    );
+    expect(fakeDocument.body._source.categories[0].is_active).toBe(false);
+    expect(fakeDocument.body._source.categories[0].deleted_at).toBeDefined();
+  });
+
   it('should throw error on delete when a entity not found', async () => {
     const categoryId = new CategoryId();
     await expect(repository.delete(categoryId)).rejects.toThrow(
