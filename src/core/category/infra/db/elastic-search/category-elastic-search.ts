@@ -507,6 +507,7 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
                 item.category_name = params.category_name;
                 item.is_active = params.is_active;
                 item.deleted_at = params.deleted_at;
+                item.is_deleted = params.is_deleted;
               }
             }
           }else{
@@ -520,6 +521,7 @@ export class CategoryElasticSearchRepository implements ICategoryRepository {
           params: {
             category_id: entity.category_id.id,
             ...CategoryElasticSearchMapper.toDocument(entity),
+            is_deleted: entity.deleted_at ? true : false,
           },
         },
       },

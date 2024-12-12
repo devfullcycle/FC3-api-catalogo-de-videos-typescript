@@ -9,6 +9,9 @@ describe('DeleteCategoryUseCase Unit Tests', () => {
 
   beforeEach(() => {
     repository = new CategoryInMemoryRepository();
+    jest
+      .spyOn(repository, 'hasOnlyOneNotDeletedInRelated')
+      .mockImplementation();
     useCase = new DeleteCategoryUseCase(repository);
   });
 

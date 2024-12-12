@@ -9,6 +9,7 @@ describe('SaveCategoryUseCase Unit Tests', () => {
 
   beforeEach(() => {
     repository = new CategoryInMemoryRepository();
+    jest.spyOn(repository, 'hasOnlyOneActivateInRelated').mockImplementation();
     useCase = new SaveCategoryUseCase(repository);
   });
 
