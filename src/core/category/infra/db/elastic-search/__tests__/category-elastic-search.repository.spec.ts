@@ -256,6 +256,271 @@ describe('CategoryElasticSearchRepository Integration Tests', () => {
     expect(existsResult3.not_exists[0]).toBeValueObject(category.category_id);
   });
 
+  test('hasOnlyOneActivateInRelated method', async () => {
+    const categoryId1 = new CategoryId();
+    const categoryId2 = new CategoryId();
+    const categoryId3 = new CategoryId();
+    const categoryId4 = new CategoryId();
+    await esHelper.esClient.bulk({
+      index: esHelper.indexName,
+      body: [
+        {
+          index: {
+            _id: '1',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: true,
+              deleted_at: null,
+            },
+            {
+              category_id: categoryId2.id,
+              category_name: 'Movie 2',
+              is_active: false,
+              deleted_at: null,
+            },
+          ],
+        },
+        {
+          index: {
+            _id: '2',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: true,
+              deleted_at: null,
+            },
+            {
+              category_id: categoryId3.id,
+              category_name: 'Movie 3',
+              is_active: true,
+              deleted_at: null,
+            },
+          ],
+        },
+        {
+          index: {
+            _id: '3',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId3.id,
+              category_name: 'Movie 3',
+              is_active: true,
+              deleted_at: null,
+            },
+            {
+              category_id: categoryId4.id,
+              category_name: 'Movie 4',
+              is_active: false,
+              deleted_at: null,
+            },
+          ],
+        },
+        {
+          index: {
+            _id: '4',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: false,
+              deleted_at: null,
+            },
+            {
+              category_id: categoryId2.id,
+              category_name: 'Movie 2',
+              is_active: true,
+              deleted_at: null,
+            },
+          ],
+        },
+      ],
+      refresh: true,
+    });
+
+    const result = await repository.hasOnlyOneActivateInRelated(categoryId1);
+    expect(result).toBe(true);
+
+    //update category 1 to inactive
+    await esHelper.esClient.update({
+      index: esHelper.indexName,
+      id: '1',
+      body: {
+        doc: {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: true,
+              deleted_at: new Date(),
+            },
+            {
+              category_id: categoryId2.id,
+              category_name: 'Movie 2',
+              is_active: false,
+            },
+          ],
+        },
+      },
+      refresh: true,
+    });
+
+    const result2 = await repository.hasOnlyOneActivateInRelated(categoryId1);
+    expect(result2).toBe(false);
+  });
+
+  test('hasOnlyOneNotDeletedInRelated method', async () => {
+    const categoryId1 = new CategoryId();
+    const categoryId2 = new CategoryId();
+    const categoryId3 = new CategoryId();
+    const categoryId4 = new CategoryId();
+    await esHelper.esClient.bulk({
+      index: esHelper.indexName,
+      body: [
+        {
+          index: {
+            _id: '1',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: true,
+              deleted_at: null,
+              is_deleted: false,
+            },
+            {
+              category_id: categoryId2.id,
+              category_name: 'Movie 2',
+              is_active: false,
+              deleted_at: null,
+              is_deleted: false,
+            },
+          ],
+        },
+        {
+          index: {
+            _id: '2',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: true,
+              deleted_at: null,
+              is_deleted: false,
+            },
+            {
+              category_id: categoryId3.id,
+              category_name: 'Movie 3',
+              is_active: true,
+              deleted_at: null,
+              is_deleted: false,
+            },
+          ],
+        },
+        {
+          index: {
+            _id: '3',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId3.id,
+              category_name: 'Movie 3',
+              is_active: true,
+              deleted_at: null,
+              is_deleted: false,
+            },
+            {
+              category_id: categoryId4.id,
+              category_name: 'Movie 4',
+              is_active: false,
+              deleted_at: null,
+              is_deleted: false,
+            },
+          ],
+        },
+        {
+          index: {
+            _id: '4',
+          },
+        },
+        {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: false,
+              deleted_at: null,
+              is_deleted: false,
+            },
+            {
+              category_id: categoryId2.id,
+              category_name: 'Movie 2',
+              is_active: true,
+              deleted_at: null,
+              is_deleted: false,
+            },
+          ],
+        },
+      ],
+      refresh: true,
+    });
+
+    const result = await repository.hasOnlyOneNotDeletedInRelated(categoryId1);
+    expect(result).toBe(false);
+
+    //update category 1 to deleted
+    await esHelper.esClient.update({
+      index: esHelper.indexName,
+      id: '1',
+      body: {
+        doc: {
+          categories: [
+            {
+              category_id: categoryId1.id,
+              category_name: 'Movie 1',
+              is_active: true,
+              deleted_at: null,
+              is_deleted: false,
+            },
+            {
+              category_id: categoryId2.id,
+              category_name: 'Movie 2',
+              is_active: false,
+              deleted_at: new Date(),
+              is_deleted: true,
+            },
+          ],
+        },
+      },
+      refresh: true,
+    });
+
+    const result2 = await repository.hasOnlyOneNotDeletedInRelated(categoryId1);
+    expect(result2).toBe(true);
+  });
+
   it('should throw error on update when a entity not found', async () => {
     const entity = Category.fake().aCategory().build();
     await expect(repository.update(entity)).rejects.toThrow(
