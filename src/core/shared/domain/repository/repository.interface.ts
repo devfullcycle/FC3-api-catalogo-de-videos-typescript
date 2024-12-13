@@ -42,6 +42,6 @@ export interface ISearchableRepository<
   search(props: SearchInput): Promise<SearchOutput>;
   searchByCriteria(
     criterias: ICriteria[],
-    searchParams: SearchParams,
+    searchParams: SearchInput,
   ): Promise<SearchOutput>;
 }
