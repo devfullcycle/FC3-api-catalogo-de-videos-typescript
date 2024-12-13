@@ -503,7 +503,7 @@ export class CastMemberElasticSearchRepository
 
   async searchByCriteria(
     criterias: ICriteria[],
-    searchParams: SearchParams,
+    searchParams: CastMemberSearchParams,
   ): Promise<CastMemberSearchResult> {
     const offset = (searchParams.page - 1) * searchParams.per_page;
     const limit = searchParams.per_page;
