@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { CategoriesModule } from './nest-modules/categories-module/categories.module';
+import { CastMembersModule } from './nest-modules/cast-members-module/cast-members.module';
+import { GenresModule } from './nest-modules/genres-module/genres.module';
+import { VideosModule } from './nest-modules/videos-modules/videos.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    CategoriesModule.forRoot(),
+    CastMembersModule.forRoot(),
+    GenresModule.forRoot(),
+    VideosModule,
+  ],
 })
 export class AppModule {}

@@ -107,6 +107,7 @@ async function main() {
   const category4 = Category.fake().aCategory().withName('Category 4').build();
   await repository.bulkInsert([category1, category2, category3, category4]);
   const findByNameCriteria = new FindByNameCriteria('Category 2');
+  //@ts-expect-error
   let result = await repository.searchByCriteria([findByNameCriteria]);
   console.log(result);
   const findByDescriptionCriteria = new FindByDescriptionCriteria(
@@ -117,6 +118,7 @@ async function main() {
     findByNameCriteria,
     findByDescriptionCriteria,
   ]);
+  //@ts-expect-error
   result = await repository.searchByCriteria([byNameAndDescription]);
   console.log(result);
 
@@ -125,6 +127,7 @@ async function main() {
     new FindByDescriptionCriteria(category2.description!),
   ]);
 
+  //@ts-expect-error
   result = await repository.searchByCriteria([byNameAndDescription]);
   console.log(result);
 }
