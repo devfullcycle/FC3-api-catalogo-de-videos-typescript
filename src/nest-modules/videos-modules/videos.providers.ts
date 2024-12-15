@@ -11,6 +11,7 @@ import { IGenreRepository } from '../../core/genre/domain/genre.repository';
 import { ICastMemberRepository } from '../../core/cast-member/domain/cast-member.repository';
 import { CAST_MEMBER_PROVIDERS } from '../cast-members-module/cast-members.providers';
 import { ListVideosUseCase } from '../../core/video/application/use-cases/list-videos/list-videos.use-case';
+import { GetVideoUseCase } from '../../core/video/application/use-cases/get-video/get-video.use-case';
 
 export const REPOSITORIES = {
   VIDEO_REPOSITORY: {
@@ -32,16 +33,16 @@ export const REPOSITORIES = {
 
 export const USE_CASES = {
   LIST_VIDEOS_USE_CASE: {
-    provide: 'ListVideosUseCase',
+    provide: ListVideosUseCase,
     useFactory: (videoRepo: IVideoRepository) => {
       return new ListVideosUseCase(videoRepo);
     },
     inject: [REPOSITORIES.VIDEO_REPOSITORY.provide],
   },
   GET_VIDEO_USE_CASE: {
-    provide: 'GetVideoUseCase',
+    provide: GetVideoUseCase,
     useFactory: (videoRepo: IVideoRepository) => {
-      return new ListVideosUseCase(videoRepo);
+      return new GetVideoUseCase(videoRepo);
     },
     inject: [REPOSITORIES.VIDEO_REPOSITORY.provide],
   },
