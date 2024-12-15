@@ -8,9 +8,12 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      
 
   kafka:
     image: confluentinc/cp-server:7.5.2
+    command: bash -c "sleep 30 && /etc/confluent/docker/run"
+    init: true
     hostname: kafka
     depends_on:
       - zookeeper
@@ -37,12 +40,18 @@ services:
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       CONFLUENT_METRICS_ENABLE: 'true'
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka:9092 --list
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.5.2
     hostname: schema-registry
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "8083:8081"
     environment:
@@ -54,8 +63,10 @@ services:
     image: cnfldemos/cp-server-connect-datagen:0.6.2-7.5.0
     hostname: connect
     depends_on:
-      - kafka
-      - schema-registry
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_started
     ports:
       - "8084:8083"
     environment:
