@@ -1,3 +1,6 @@
+include:
+  - ./docker-compose.kafka.yaml
+
 services:
   
   app:
@@ -17,12 +20,23 @@ services:
     image: elasticsearch:7.17.7
     environment:
       - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
       - 9200:9200
+    deploy:
+      resources:
+        limits:
+          memory: 700m
   
   kibana:
     image: kibana:7.17.1
     ports:
       - 5601:5601
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=512
     depends_on:
       - elasticsearch
+    deploy:
+      resources:
+        limits:
+          memory: 700m
