@@ -1,3 +1,4 @@
+### create um source com mysql
 POST http://host.docker.internal:8084/connectors
 Content-Type: application/json
 Accept: application/json
@@ -21,3 +22,5 @@ Accept: application/json
     }
 }
 
+### consultar um schema registry pelo id
+GET http://host.docker.internal:8083/schemas/ids/3
