@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { Transport } from '@nestjs/microservices';
-import { SchemaRegistryDeserializer } from '../schema-registry-deserializer';
+import { SchemaRegistryDeserializer } from '../nest-modules/kafka-module/schema-registry-deserializer';
 import { SchemaRegistryClient } from '@confluentinc/schemaregistry';
 
 async function bootstrap() {
