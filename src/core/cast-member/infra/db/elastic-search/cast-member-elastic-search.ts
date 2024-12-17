@@ -11,10 +11,7 @@ import {
 import { NotFoundError } from '../../../../shared/domain/errors/not-found.error';
 import { CastMemberType } from '../../../domain/cast-member-type.vo';
 import { LoadEntityError } from '../../../../shared/domain/validators/validation.error';
-import {
-  SearchParams,
-  SortDirection,
-} from '../../../../shared/domain/repository/search-params';
+import { SortDirection } from '../../../../shared/domain/repository/search-params';
 import { ICriteria } from '@core/shared/domain/repository/criteria.interface';
 import {
   GetGetResult,
