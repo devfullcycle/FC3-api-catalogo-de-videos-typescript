@@ -5,12 +5,13 @@ import {
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { Payload } from '@nestjs/microservices';
 import { CDCPayloadDto } from '../../kafka-module/cdc.dto';
 import { SaveCategoryUseCase } from '../../../core/category/application/use-cases/save-category/save-category.use-case';
 import { DeleteCategoryUseCase } from '../../../core/category/application/use-cases/delete-category/delete-category.use-case';
 import { SaveCategoryInput } from '../../../core/category/application/use-cases/save-category/save-category.input';
 import { TombstoneEventInterceptor } from '../../kafka-module/tombstone-event.interceptor';
+import { KConnectEventPattern } from '../../kafka-module/kconnect-event-pattern.decorator';
 
 @Controller()
 export class CategoriesConsumer {
@@ -23,7 +24,7 @@ export class CategoriesConsumer {
   private deleteUseCase: DeleteCategoryUseCase;
 
   @UseInterceptors(TombstoneEventInterceptor)
-  @EventPattern('mysql.micro_videos.categories')
+  @KConnectEventPattern('categories')
   async handle(@Payload(new ValidationPipe()) message: CDCPayloadDto) {
     switch (message.op) {
       case 'r':

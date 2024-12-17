@@ -22,6 +22,7 @@
   "dependencies": {
     "@confluentinc/schemaregistry": "^1.0.0",
     "@elastic/elasticsearch": "7.17",
+    "@golevelup/nestjs-discovery": "^4.0.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.0.0",

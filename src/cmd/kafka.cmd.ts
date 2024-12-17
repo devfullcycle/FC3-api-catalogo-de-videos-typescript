@@ -3,6 +3,7 @@ import { AppModule } from '../app.module';
 import { Transport } from '@nestjs/microservices';
 import { SchemaRegistryDeserializer } from '../nest-modules/kafka-module/schema-registry-deserializer';
 import { SchemaRegistryClient } from '@confluentinc/schemaregistry';
+import { KConnectEventPatternRegister } from '../nest-modules/kafka-module/kconnect-event-pattern.register';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice(AppModule, {
@@ -19,6 +20,9 @@ async function bootstrap() {
       ),
     },
   });
+
+  await app.get(KConnectEventPatternRegister).registerKConnectTopicDecorator();
+
   await app.listen();
 }
 bootstrap();

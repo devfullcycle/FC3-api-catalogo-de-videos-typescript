@@ -13,6 +13,11 @@ export const configuration = (
     index:
       overrideValues?.elastic_search?.index || process.env.ELASTIC_SEARCH_INDEX,
   },
+  kafka: {
+    connect_prefix:
+      overrideValues?.kafka?.connect_prefix || process.env.KAFKA_CONNECT_PREFIX,
+    brokers: overrideValues?.kafka?.brokers || process.env.KAFKA_BROKERS,
+  },
 });
 
 export const overrideConfiguration = (
