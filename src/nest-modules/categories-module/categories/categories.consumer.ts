@@ -38,11 +38,11 @@ export class CategoriesConsumer {
           `[INFO] [${CategoriesConsumer.name}] - Processing operation ${message.op} - ${JSON.stringify(message.after)}`,
         );
         const inputBeforeValidate = {
-          category_id: message.after.category_id,
-          name: message.after.name,
-          description: message.after.description,
-          is_active: message.after.is_active,
-          created_at: message.after.created_at,
+          category_id: message.after?.category_id,
+          name: message.after?.name,
+          description: message.after?.description,
+          is_active: message.after?.is_active,
+          created_at: message.after?.created_at,
         };
         const input = await new ValidationPipe({
           errorHttpStatusCode: 422,
@@ -58,7 +58,7 @@ export class CategoriesConsumer {
         this.logger.log(
           `[INFO] [${CategoriesConsumer.name}] - Processing operation ${message.op} - ${JSON.stringify(message.before)}`,
         );
-        await this.deleteUseCase.execute({ id: message.before.category_id });
+        await this.deleteUseCase.execute({ id: message.before?.category_id });
         break;
     }
   }
