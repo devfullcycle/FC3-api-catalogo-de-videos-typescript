@@ -11,7 +11,7 @@ import { overrideConfiguration } from '../../../config-module/configuration';
 import { KafkaModule } from '../../../kafka-module/kafka.module';
 import { CategoriesModule } from '../../categories.module';
 import { ElasticSearchModule } from '../../../elastic-search-module/elastic-search-module';
-import { logLevel } from 'kafkajs';
+//import { logLevel } from 'kafkajs';
 import { CDCOperation, CDCPayloadDto } from '../../../kafka-module/cdc.dto';
 import {
   Category,
@@ -22,6 +22,7 @@ import { CATEGORY_PROVIDERS } from '../../categories.providers';
 import { ICategoryRepository } from '../../../../core/category/domain/category.repository';
 import { ServerKafka, Transport } from '@nestjs/microservices';
 import { TestDynamicExceptionFilter } from '../../../shared-module/testing/test-dynamic-exception.filter';
+import { ConfluentKafkaServer } from '../../../kafka-module/confluent/confluent-kafka-server';
 
 describe('CategoriesConsumer Integration Tests', () => {
   const esHelper = setupElasticsearch();
@@ -67,27 +68,39 @@ describe('CategoriesConsumer Integration Tests', () => {
       .registerKConnectTopicDecorator();
 
     _microserviceInst = _nestModule.createNestMicroservice({
-      transport: Transport.KAFKA,
-      options: {
-        client: {
-          clientId: 'test_client' + crypto.randomInt(0, 1000000),
-          brokers: [kafkaHelper.kafkaContainerHost],
-          connectionTimeout: 1000,
-          logLevel: logLevel.NOTHING,
+      strategy: new ConfluentKafkaServer({
+        server: {
+          'client.id': 'test_client' + crypto.randomInt(0, 1000000),
+          'bootstrap.servers': kafkaHelper.kafkaContainerHost,
+          log_level: 0,
         },
         consumer: {
-          allowAutoTopicCreation: false,
           groupId: 'test_group' + crypto.randomInt(0, 1000000),
-          retry: {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            restartOnFailure: (e: any) => Promise.resolve(false),
-          },
-          maxWaitTimeInMs: 0,
-        },
-        subscribe: {
+          allowAutoTopicCreation: false,
           fromBeginning: true,
         },
-      },
+      }),
+      // transport: Transport.KAFKA,
+      // options: {
+      //   client: {
+      //     clientId: 'test_client' + crypto.randomInt(0, 1000000),
+      //     brokers: [kafkaHelper.kafkaContainerHost],
+      //     connectionTimeout: 1000,
+      //     logLevel: logLevel.NOTHING,
+      //   },
+      //   consumer: {
+      //     allowAutoTopicCreation: false,
+      //     groupId: 'test_group' + crypto.randomInt(0, 1000000),
+      //     retry: {
+      //       // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      //       restartOnFailure: (e: any) => Promise.resolve(false),
+      //     },
+      //     maxWaitTimeInMs: 0,
+      //   },
+      //   subscribe: {
+      //     fromBeginning: true,
+      //   },
+      // },
     });
 
     _kafkaServer = _microserviceInst['server'];
@@ -128,10 +141,9 @@ describe('CategoriesConsumer Integration Tests', () => {
           value: JSON.stringify(message),
         },
       ],
-      timeout: 1000,
     });
 
-    await sleep(1000);
+    await sleep(2000);
   });
 
   test('should create a category', async () => {
@@ -159,7 +171,7 @@ describe('CategoriesConsumer Integration Tests', () => {
       ],
     });
 
-    await sleep(1000);
+    await sleep(2000);
 
     const repository = _microserviceInst.get<ICategoryRepository>(
       CATEGORY_PROVIDERS.REPOSITORIES.CATEGORY_REPOSITORY.provide,
@@ -202,7 +214,7 @@ describe('CategoriesConsumer Integration Tests', () => {
       ],
     });
 
-    await sleep(1000);
+    await sleep(2000);
 
     const updatedCategory = await repository.findById(category.category_id);
     expect(updatedCategory).toBeDefined();
@@ -239,7 +251,7 @@ describe('CategoriesConsumer Integration Tests', () => {
       ],
     });
 
-    await sleep(1000);
+    await sleep(2000);
 
     await expect(
       repository.ignoreSoftDeleted().findById(category.category_id),

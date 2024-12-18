@@ -233,6 +233,9 @@ Content-Type: application/json
   }
 }
 
+###
+GET http://{{host}}/aula/_doc/f927df06-364d-47da-89dd-87bb51592010
+
 ### Excluir um documento
 DELETE http://{{host}}/aula/_doc/--omepABEyUXykQzS0l7
 
