@@ -5,22 +5,28 @@ import { SchemaRegistryDeserializer } from '../nest-modules/kafka-module/schema-
 import { SchemaRegistryClient } from '@confluentinc/schemaregistry';
 import { KConnectEventPatternRegister } from '../nest-modules/kafka-module/kconnect-event-pattern.register';
 import { ConfluentKafkaServer } from '../nest-modules/kafka-module/confluent/confluent-kafka-server';
+import { KafkaOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
-  // const app = await NestFactory.createMicroservice(AppModule, {
+  // const kafkaConfig: KafkaOptions = {
   //   transport: Transport.KAFKA,
   //   options: {
   //     client: {
   //       brokers: ['kafka:29092'],
   //     },
   //     consumer: {
-  //       groupId: 'categories-consumer' + Math.random(),
+  //       //groupId: 'categories-consumer' + Math.random(),
+  //       groupId: 'categories-consumer',
+  //     },
+  //     subscribe: {
+  //       fromBeginning: true,
   //     },
   //     deserializer: new SchemaRegistryDeserializer(
   //       new SchemaRegistryClient({ baseURLs: ['http://schema-registry:8081'] }),
   //     ),
   //   },
-  // });
+  // };
+  // const app = await NestFactory.createMicroservice(AppModule, kafkaConfig);
 
   const app = await NestFactory.createMicroservice(AppModule, {
     strategy: new ConfluentKafkaServer({
