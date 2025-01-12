@@ -1,4 +1,4 @@
-import { BaseRpcContext, Ctx } from '@nestjs/microservices';
+import { BaseRpcContext } from '@nestjs/microservices';
 import * as kafkaLib from '@confluentinc/kafka-javascript';
 import { KafkaMessage } from '@nestjs/microservices/external/kafka.interface';
 
